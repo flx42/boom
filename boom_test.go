@@ -15,6 +15,8 @@
 package main
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -56,5 +58,50 @@ func TestParseAuthMetaCharacters(t *testing.T) {
 	_, err := parseInputWithRegexp("plus+$*{:boom", authRegexp)
 	if err != nil {
 		t.Errorf("Could not parse an auth header with a plus sign in the user name")
+	}
+}
+
+func TestParseReqBodyEmptyString(t *testing.T) {
+	body, err := parseRequestBody("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if body != "" {
+		t.Fatalf("expected empty string but got %s instead", body)
+	}
+}
+
+func TestParseReqBodyContents(t *testing.T) {
+	expected := "{}"
+	actual, err := parseRequestBody(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actual != expected {
+		t.Fatalf("expected %s but got %s instead", expected, actual)
+	}
+}
+
+func TestParseReqBodyFromFile(t *testing.T) {
+	f, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := "{}"
+	if err := ioutil.WriteFile(f.Name(), []byte(expected), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	actual, err := parseRequestBody("@" + f.Name())
+	if actual != expected {
+		t.Fatalf("expected %s but got %s instead", expected, actual)
+	}
+}
+
+func TestParseReqBodyNoFile(t *testing.T) {
+	if _, err := parseRequestBody("@"); err == nil {
+		t.Fatal("expected error")
 	}
 }
